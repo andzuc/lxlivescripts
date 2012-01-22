@@ -1,0 +1,23 @@
+#!/bin/bash 
+
+# bash is a scipt using ash: dash is a replacement for ash
+INSTBIN=${1}
+INSTLIB=${2}
+BINS=${*:3}
+
+echo Binprep: looking for binaries: $BINS
+for BIN in $BINS
+do
+	if which $BIN 2>/dev/null 1>/dev/null ; then
+		if [ ! -x $INSTBIN/$BIN ] ; then
+			echo "Copying $BIN to $INSTBIN"
+	
+			cp `which $BIN` $INSTBIN
+			cpld $INSTBIN/$BIN $INSTLIB
+		else
+			echo "Not copying $BIN to $INSTBIN"
+		fi
+	else
+		echo "Not found $BIN"
+	fi
+done
