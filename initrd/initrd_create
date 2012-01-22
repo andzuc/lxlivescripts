@@ -138,8 +138,8 @@ ln -sf bin $INITRD_TREE/sbin
 
 # necessary modules and dependency files
 mkdir -p $INITRD_TREE/$LMK/kernel/fs
-rcopy $ROOT/$LMK/kernel/fs/aufs $INITRD_TREE
 rcopy $ROOT/$LMK/kernel/fs/squashfs $INITRD_TREE
+rcopy $(find $ROOT/$LMK -name 'aufs.*') $INITRD_TREE
 
 # copy filesystem modules, if not directly copied into kernel
 rcopy_ex $ROOT/$LMK/kernel/lib/zlib_inflate $INITRD_TREE 2>>$DEBUG

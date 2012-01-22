@@ -341,7 +341,7 @@ device_filesystem()
    local NTFS
 
    if [ -e /bin/ntfsmount ]; then NTFS="ntfs-3g"; else NTFS="ntfs"; fi
-   blkid -s TYPE "$1" -o value | sed "s/msdos/vfat/" | sed "s/ntfs/$NTFS/"
+   /bin/blkid -s TYPE "$1" -o value | sed "s/msdos/vfat/" | sed "s/ntfs/$NTFS/"
 }
 
 # tell us if the given filesystem is supported
@@ -461,8 +461,10 @@ fumount()
 create_module()
 {
    debug_log "create_module" "$*"
-   rm -f "$2" # overwrite, never append to existing file
-   mksquashfs "$1" "$2" -b 256K -lzmadic 256K $3 $4 $5 $6 $7 $8 $9>/dev/null
+   rm -f "$2" # overwrite, never append to existing file   
+
+   mksquashfs "$1" "$2" -b 256K ${SQUASHOPTS} $3 $4 $5 $6 $7 $8 $9>/dev/null
+
    if [ $? -ne 0 ]; then return 1; fi
    chmod a-wx "$2" # remove execute and write attrib
    chmod a+r "$2" # add read for everyone
@@ -666,7 +668,7 @@ list_swap_devices()
 {
    debug_log "list_swap_devices" "$*"
    if [ "$(cmdline_parameter nohd)" != "" -o "$(cmdline_parameter noswap)" != "" ]; then return 1; fi
-   blkid -t TYPE="swap" -o device
+   /bin/blkid -t TYPE="swap" -o device
 }
 
 # List all block devices

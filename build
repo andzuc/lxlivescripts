@@ -10,6 +10,9 @@ CHANGEDIR=$(dirname $(readlink -f $0))
 echo "Changing current directory to $CHANGEDIR"
 cd $CHANGEDIR
 
+# copy updated binaries and libraries from host system to live initrd
+prep_initrd
+
 . liblinuxlive || exit 1
 . ./.config || exit 1
 
