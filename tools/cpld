@@ -30,7 +30,7 @@ echo "Copying the dependencies to $2"
 for dep in $deps
 do
     echo "Copying $dep to $2"
-    cp "$dep" "$2"
+    cp -p "$dep" "$2"
 done
 
 echo "Done!"

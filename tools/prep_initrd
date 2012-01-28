@@ -1,20 +1,21 @@
 #!/bin/bash 
 
 # bash is a scipt using ash: dash is a replacement for ash
-MYDIR=$(dirname $(readlink -f $0))
-ROOTFS=${MYDIR}/../initrd/rootfs
+ROOTFS=${CHANGEDIR}/initrd/rootfs
 
 binprep ${ROOTFS}/bin ${ROOTFS}/lib blkid blockdev busybox eject lspci shutdown
 
 ldconfig -v -r "${ROOTFS}" -n "/lib"
-chmod -R +x "${ROOTFS}/lib"
 
 # copy pci id files
 [ ! -d "${ROOTFS}/usr/share/misc" ]&&mkdir -p "${ROOTFS}/usr/share/misc"
 if [ -f "/usr/share/misc/pci.ids.gz" ] ; then
-	cp "/usr/share/misc/pci.ids.gz" "${ROOTFS}/usr/share/misc"
+    cp "/usr/share/misc/pci.ids.gz" "${ROOTFS}/usr/share/misc"
 else
-	if [ -f "/usr/share/misc/pci.ids" ] ; then
-		cp "/usr/share/misc/pci.ids" "${ROOTFS}/usr/share/misc"
-	fi
+    if [ -f "/usr/share/misc/pci.ids" ] ; then
+	cp "/usr/share/misc/pci.ids" "${ROOTFS}/usr/share/misc"
+    fi
 fi
+
+# copy linux live build config to initrd for runtime options
+cp "${CHANGEDIR}/.config" "${ROOTFS}/${LIVECDNAME}.config"
