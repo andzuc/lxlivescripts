@@ -23,7 +23,7 @@ if [ "$NEWLIVECDNAME" != "" ]; then LIVECDNAME=$NEWLIVECDNAME; fi
 LIVECDNAME=$(echo $LIVECDNAME | tr -d ' ')
 
 # copy updated binaries and libraries from host system to live initrd
-. ./prep_initrd
+. ./tools/prep_initrd
 
 . ./install
 if [ "$ROOT" -a "$ROOT" != "/" ]; then 
