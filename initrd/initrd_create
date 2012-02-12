@@ -129,9 +129,15 @@ fi
 
 cp -a rootfs/* $INITRD_TREE
 
+if [ "$USEINITRAMFS" = "yes" ]; then
+    cp rootfs/bin/init $INITRD_TREE/init
+fi
+
 # build links to busybox's functions from busybox's own help text
 for i in $(rootfs/bin/busybox --help | grep -v Copyright | grep , | tr , " "); do
-   ln -s busybox $INITRD_TREE/bin/$i
+    if ! [ -a $INITRD_TREE/bin/$i ]; then
+	ln -s busybox $INITRD_TREE/bin/$i
+    fi
 done
 
 ln -sf bin $INITRD_TREE/sbin
@@ -205,44 +211,49 @@ mksquashfs $INITRD_TREE/$LMK/kernel/drivers $INITRD_TREE/drivers.lzm >/dev/null 
 chmod ago-x $INITRD_TREE/drivers.lzm
 rm -Rf $INITRD_TREE/$LMK/kernel/drivers/*
 
-debug "creating empty image file for initrd"
-dd if=/dev/zero of=$INITRDIMG bs=1024 count=$RAM0SIZE >>$DEBUG 2>&1
+if [ "$USEINITRAMFS" = "yes" ]; then
+    debug "creating initramfs image"
+    mkinitramfs $INITRD_TREE $INITRDIMG.gz
+else
+    debug "creating empty image file for initrd"
+    dd if=/dev/zero of=$INITRDIMG bs=1024 count=$RAM0SIZE >>$DEBUG 2>&1
 
-debug "making filesystem"
-mkfs -t ext2 -F -m 0 -b 1024 -i 1024 $INITRDIMG >>$DEBUG 2>&1
-tune2fs -i 120m $INITRDIMG >>$DEBUG 2>&1
+    debug "making filesystem"
+    mkfs -t ext2 -F -m 0 -b 1024 -i 1024 $INITRDIMG >>$DEBUG 2>&1
+    tune2fs -i 120m $INITRDIMG >>$DEBUG 2>&1
 
-debug "creating empty directory $MOUNTDIR"
-rm -Rf $MOUNTDIR
-mkdir $MOUNTDIR
+    debug "creating empty directory $MOUNTDIR"
+    rm -Rf $MOUNTDIR
+    mkdir $MOUNTDIR
 
-debug "mounting $INITRDIMG to it"
-modprobe loop 2>>$DEBUG
-mount -o loop -t ext2 $INITRDIMG $MOUNTDIR
-if [ "$?" -ne 0 ]; then
-   echo "Error mounting initrd! Not enough free loop devices?"
-   exit 1
+    debug "mounting $INITRDIMG to it"
+    modprobe loop 2>>$DEBUG
+    mount -o loop -t ext2 $INITRDIMG $MOUNTDIR
+    if [ "$?" -ne 0 ]; then
+	echo "Error mounting initrd! Not enough free loop devices?"
+	exit 1
+    fi
+
+    debug "copying content of $INITRD_TREE to $MOUNTDIR"
+    rmdir $MOUNTDIR/lost+found
+    cp -R --preserve $INITRD_TREE/* $MOUNTDIR 2>/dev/null
+    if [ $? -ne 0 ]; then
+	debug "error copying data to mounted initrd. Increase RAM0SIZE"
+	echo "Not enough free space in initrd. Edit .config and increase RAM0SIZE !"
+	umount $MOUNTDIR
+	rm $INITRDIMG
+	exit 1
+    fi
+
+    debug "unmounting $MOUNTDIR"
+    umount $MOUNTDIR
+
+    debug "gzipping $INITRDIMG"
+    gzip --best $INITRDIMG
+
+    debug "deleting directory $MOUNTDIR"
+    rmdir $MOUNTDIR
 fi
-
-debug "copying content of $INITRD_TREE to $MOUNTDIR"
-rmdir $MOUNTDIR/lost+found
-cp -R --preserve $INITRD_TREE/* $MOUNTDIR 2>/dev/null
-if [ $? -ne 0 ]; then
-   debug "error copying data to mounted initrd. Increase RAM0SIZE"
-   echo "Not enough free space in initrd. Edit .config and increase RAM0SIZE !"
-   umount $MOUNTDIR
-   rm $INITRDIMG
-   exit 1
-fi
-
-debug "unmounting $MOUNTDIR"
-umount $MOUNTDIR
-
-debug "gzipping $INITRDIMG"
-gzip --best $INITRDIMG
-
-debug "deleting directory $MOUNTDIR"
-rmdir $MOUNTDIR
 
 debug "deleting directory $INITRD_TREE"
 rm -Rf $INITRD_TREE
