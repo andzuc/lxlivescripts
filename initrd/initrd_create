@@ -206,10 +206,12 @@ mksquashfs $INITRD_TREE/usr $INITRD_TREE/usr.lzm >/dev/null 2>&1
 chmod ago-x $INITRD_TREE/usr.lzm
 rm -Rf $INITRD_TREE/usr/*
 
-debug "compressing net in initrd"
-mksquashfs $INITRD_TREE/$LMK/kernel/drivers $INITRD_TREE/drivers.lzm >/dev/null 2>&1
-chmod ago-x $INITRD_TREE/drivers.lzm
-rm -Rf $INITRD_TREE/$LMK/kernel/drivers/*
+if [ -d $INITRD_TREE/$LMK/kernel/drivers ]; then
+    debug "compressing drivers in initrd"
+    mksquashfs $INITRD_TREE/$LMK/kernel/drivers $INITRD_TREE/drivers.lzm >/dev/null 2>&1
+    chmod ago-x $INITRD_TREE/drivers.lzm
+    rm -Rf $INITRD_TREE/$LMK/kernel/drivers/*
+fi
 
 if [ "$USEINITRAMFS" = "yes" ]; then
     debug "creating initramfs image"
