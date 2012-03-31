@@ -280,7 +280,9 @@ else
 # We will copy init from the distro to initrd (there should be 2MB free)
 # This allows us to use the cleanup script during reboot, as init will be
 # started from memory and not from the union and /union will not be busy.
-    header "Linux live end, uing pivot_root to start $LIVECDNAME"
+    header "Linux live end, using switch_root to start $LIVECDNAME"
+    mkdir $INITRAMDISK/memory
+    mount -n -o move /$MEMORY $INITRAMDISK/memory 2>/dev/null
     cp -af $INIT /bin
     if [ $? -eq 0 ]; then
 	pivot_root . $INITRAMDISK
