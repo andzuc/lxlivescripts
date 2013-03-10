@@ -1086,3 +1086,38 @@ fstab_update()
 
    mv -f $FSTABTMP $FSTAB
 }
+
+# build links to busybox's functions from busybox's own help text
+busybox_links()
+{
+    debug_log "Creating links to busybox's functions"
+    local BINDIR=$1
+
+    for i in $($BINDIR/busybox --help | grep -v Copyright | grep , | tr , " "); do
+	if ! [ -a $BINDIR/$i ]; then
+	    ln -s busybox $BINDIR/$i
+	fi
+    done
+}
+
+preserve_initrd()
+{
+    debug_log "Copying script files to $INITRAMDISK"
+    local FROMDIR=$1
+    local TODIR=$2
+    local MYDIR=$TODIR/initrd
+
+    mkdir -p $MYDIR
+    cp $FROMDIR/bin/busybox $MYDIR
+    cp $FROMDIR/bin/sh $MYDIR
+    cp $FROMDIR/findsubmnt $MYDIR
+    cp $FROMDIR/cleandie $MYDIR
+    cp $FROMDIR/*.config $MYDIR
+}
+
+find_mountpoint()
+{
+    local FPATH=$1
+
+    df -P "$FPATH" | awk '{c++} c==2 {print $NF}'
+}

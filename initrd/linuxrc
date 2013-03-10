@@ -85,7 +85,10 @@ if [ "$DATA" = "" ]; then
    # from= is not used or it didn't contain valid data
    DATA=$(find_in_computer $LIVECDNAME/$SGN)
    DATA=$(dirname $DATA 2>/dev/null)
+
+   DATAMNT=$(find_mountpoint $DATA)
 fi
+
 
 if [ "$DATA" = "" ]; then fatal \
 "$LIVECDNAME data not found.
@@ -94,7 +97,7 @@ Workaround: Copy the directory $LIVECDNAME from your boot device to an IDE/SATA
 disk, eg. to /mnt/hda1/$LIVECDNAME or C:\\$LIVECDNAME. Then try to boot again."
 fi
 
-echolog "using $LIVECDNAME data from $DATA"
+echolog "using $LIVECDNAME data from $DATA, mount on $DATAMNT"
 
 debug_shell
 
@@ -230,6 +233,7 @@ mkdir -p $UNION/proc
 mkdir -p $UNION/sys
 mkdir -p $UNION/dev
 mkdir -p $UNION/tmp
+mkdir -p $UNION/run
 chmod 1777 $UNION/tmp
 
 # Boot will contain whatever was in ./boot directory in the bootable media
@@ -245,6 +249,7 @@ echolog "changing root directory..."
 
 cd $UNION
 mkdir -p $INITRAMDISK
+mount -t tmpfs none $INITRAMDISK
 
 # make sure some devices are there
 if [ ! -e dev/console ]; then mknod dev/console c 5 1; fi
@@ -272,9 +277,15 @@ if [ "$INIT" = "" ]; then fatal "Can't find executable init command"; fi
 # using /sbin/init or whatever was found.
 if [ -x /init ]; then
 # We are in a initramfs
+    preserve_initrd / $INITRAMDISK
     header "Linux live end, using switch_root to start $LIVECDNAME"
+    mkdir $INITRAMDISK/memory
+    mount -n -o move /$MEMORY $INITRAMDISK/memory 2>/dev/null
+    echolog "Moving $DATA on $DATAMNT to $INITRAMDISK/memory/data"
+    mkdir $INITRAMDISK/memory/data
+    mount -n -o move $DATAMNT $INITRAMDISK/memory/data 2>/dev/null
     debug_shell
-    exec switch_root . /sbin/init
+    exec switch_root . $INIT
 else
 # We are in initrd
 # We will copy init from the distro to initrd (there should be 2MB free)

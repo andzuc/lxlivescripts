@@ -109,8 +109,8 @@ done
 debug "copying files to the rootdisk"
 touch $INITRD_TREE/etc/{m,fs}tab
 cat liblinuxlive | sed -r 's/^LIVECDNAME=.*/LIVECDNAME="'$LIVECDNAME'"/' > $INITRD_TREE/liblinuxlive
-cp {linuxrc,cleanup} $INITRD_TREE
-chmod ago+x $INITRD_TREE/{linuxrc,cleanup}
+cp {linuxrc,cleanup,cleandie,findsubmnt} $INITRD_TREE
+chmod ago+x $INITRD_TREE/{linuxrc,cleanup,cleandie}
 
 #cp -a bootsplash/* $INITRD_TREE
 
@@ -139,6 +139,7 @@ for i in $(rootfs/bin/busybox --help | grep -v Copyright | grep , | tr , " "); d
 	ln -s busybox $INITRD_TREE/bin/$i
     fi
 done
+#busybox_links $INITRD_TREE/bin
 
 ln -sf bin $INITRD_TREE/sbin
 

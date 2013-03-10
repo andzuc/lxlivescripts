@@ -29,4 +29,10 @@ else
    ls -1 ./tools | egrep "^lib" | while read FILE; do rm -v $ROOT/usr/lib/$FILE; done
 fi
 
+# If livesetup file is found will be executed
+if [ -x /livesetup ]; then
+    /livesetup
+    rm /livesetup
+fi
+
 echo "Linux Live scripts were $N""ed successfuly in $1/"
