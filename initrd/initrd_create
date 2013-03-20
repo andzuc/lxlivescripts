@@ -109,7 +109,7 @@ done
 debug "copying files to the rootdisk"
 touch $INITRD_TREE/etc/{m,fs}tab
 cat liblinuxlive | sed -r 's/^LIVECDNAME=.*/LIVECDNAME="'$LIVECDNAME'"/' > $INITRD_TREE/liblinuxlive
-cp {linuxrc,cleanup,cleandie,findsubmnt} $INITRD_TREE
+cp {linuxrc,cleanup,cleandie} $INITRD_TREE
 chmod ago+x $INITRD_TREE/{linuxrc,cleanup,cleandie}
 
 #cp -a bootsplash/* $INITRD_TREE

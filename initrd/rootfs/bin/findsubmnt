@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/ash
 
 MNT=$(echo "${1}" | sed 's/\//\\\//g')
 if [ $# -eq 2 ] ; then

@@ -23,6 +23,8 @@ IMAGES=$MEMORY/images
 INITRAMDISK=$MOUNTDIR/live
 LOOPMOUNT=$MOUNTDIR/tmp
 
+DEFCONFIGSGN=livecfg.sgn
+
 # this will be replaced by build script, so never change the following line!
 LIVECDNAME="mylinux"
 
@@ -1107,11 +1109,12 @@ preserve_initrd()
     local TODIR=$2
     local MYDIR=$TODIR/initrd
 
-    mkdir -p $MYDIR
-    cp $FROMDIR/bin/busybox $MYDIR
-    cp $FROMDIR/bin/sh $MYDIR
-    cp $FROMDIR/findsubmnt $MYDIR
-    cp $FROMDIR/cleandie $MYDIR
+    mkdir -p $MYDIR/bin
+    cp $FROMDIR/bin/busybox $MYDIR/bin
+    cp $FROMDIR/bin/sh $MYDIR/bin
+    cp $FROMDIR/bin/cpld $MYDIR/bin
+    cp $FROMDIR/bin/findsubmnt $MYDIR/bin
+    cp $FROMDIR/cleandie $MYDIR/bin
     cp $FROMDIR/*.config $MYDIR
 }
 

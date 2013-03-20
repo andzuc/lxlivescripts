@@ -19,3 +19,6 @@ fi
 
 # copy linux live build config to initrd for runtime options
 cp "${CHANGEDIR}/.config" "${ROOTFS}/${LIVECDNAME}.config"
+
+# copy tools to initrd
+cp ${CHANGEDIR}/tools/cpld ${ROOTFS}/bin

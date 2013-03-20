@@ -150,6 +150,23 @@ else
    fi
 fi
 
+# Find live config directory by searching for livecfg.sgn file
+CONFIGSGN=$DEFCONFIGSGN
+echolog "looking for '$LIVECDNAME' config directory (searching for $CONFIGSGN file)"
+
+LIVECFG=$(find_in_computer $LIVECDNAME/$CONFIGSGN)
+LIVECFG=$(dirname $LIVECFG 2>/dev/null)
+
+LIVECFGMNT=$(find_mountpoint $LIVECFG)
+
+if [ "$LIVECFG" = "" ]; then
+    echolog "no $LIVECDNAME config found"
+else
+    echolog "using $LIVECDNAME config from $LIVECFG, mount on $LIVECFGMNT"
+fi
+
+debug_shell
+
 # $UNION will be used as a root directory, livecd modules will be added soon
 echolog "setup union directory (using aufs)"
 
@@ -199,6 +216,10 @@ union_insert_modules $UNION $DATA $IMAGES
 # the $MEMORY directory can contain $MEMORY/modules too
 # in the case if changes= boot argument is used. If not, it doesn't hurt
 union_insert_modules $UNION $MEMORY $IMAGES
+
+# LIVECFGG contains to the base directory of config modules which need
+# to be mounted and inserted into live filesystem. Do it now.
+union_insert_modules $UNION $LIVECFG $IMAGES
 
 debug_shell
 
@@ -278,12 +299,17 @@ if [ "$INIT" = "" ]; then fatal "Can't find executable init command"; fi
 if [ -x /init ]; then
 # We are in a initramfs
     preserve_initrd / $INITRAMDISK
-    header "Linux live end, using switch_root to start $LIVECDNAME"
     mkdir $INITRAMDISK/memory
     mount -n -o move /$MEMORY $INITRAMDISK/memory 2>/dev/null
-    echolog "Moving $DATA on $DATAMNT to $INITRAMDISK/memory/data"
+    echolog "moving $DATA on $DATAMNT to $INITRAMDISK/memory/data"
     mkdir $INITRAMDISK/memory/data
     mount -n -o move $DATAMNT $INITRAMDISK/memory/data 2>/dev/null
+    if [ "$LIVECFG" != "" ]; then
+	echolog "moving $LIVECFG on $LIVECFGMNT to $INITRAMDISK/memory/config"
+	mkdir $INITRAMDISK/memory/config
+	mount -n -o move $LIVECFGMNT $INITRAMDISK/memory/config 2>/dev/null
+    fi
+    header "Linux live end, using switch_root to start $LIVECDNAME"
     debug_shell
     exec switch_root . $INIT
 else

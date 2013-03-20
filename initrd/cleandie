@@ -36,16 +36,40 @@ fi
 
 
 if [ "$1" = "--start" ]; then
-   # This is the part which is to be called from shutdown script.
-   # We will assume init is running as process 1 and re-executes itself after 'telinit u'
-   # So we're going to force init to stop and start this script instead as PID 1
-   # If your init works differently, you may need to slightly modify few lines below
-   # - without this, init would be blocking union and it couldn't be unmounted later.
-   cd /mnt/live
-   cp "$0" sbin/init
-   pivot_root . memory/union
-   echo "$2 -f" > /lib/command
-   /sbin/telinit u
+    # This is the part which is to be called from shutdown script.
+    # We will assume init is running as process 1 and re-executes itself after 'telinit u'
+    # So we're going to force init to stop and start this script instead as PID 1
+    # If your init works differently, you may need to slightly modify few lines below
+    # - without this, init would be blocking union and it couldn't be unmounted later.
+    cd /mnt/live
+    mkdir dev bin sbin lib memory/union proc sys
+    mount -t devtmpfs udev dev
+    initrd/bin/cpld /sbin/init lib >/dev/null
+    cp /sbin/init sbin/telinit
+    cp initrd/bin/sh bin
+    cp initrd/bin/findsubmnt bin
+
+    BBOX=../initrd/bin/busybox
+    ln -s $BBOX sbin/chroot
+    ln -s $BBOX sbin/ls
+    ln -s $BBOX sbin/unmount
+    ln -s $BBOX sbin/mount
+    ln -s $BBOX sbin/losetup
+    ln -s $BBOX bin/eject
+    ln -s $BBOX bin/ash
+    ln -s $BBOX bin/kill
+    ln -s $BBOX bin/sleep
+    ln -s $BBOX bin/tac
+    ln -s $BBOX bin/awk
+    ln -s $BBOX bin/sed
+    ln -s $BBOX bin/grep
+    ln -s $BBOX bin/xargs
+    ln -s $BBOX bin/cut
+
+    cp "$0" sbin/init
+    pivot_root . memory/union
+    echo "$2 -f" > /lib/command
+    /sbin/telinit u
 fi
 
 
@@ -84,12 +108,19 @@ if [ "$1" = "--init" ]; then
    # remember from which device we are started, do it now before we lose it
    DEVICE="$(cat /proc/mounts | grep /memory/data | grep /dev/ | cut -d " " -f 1)"
 
-   echo "Unmounting start device: $DEVICE" >/dev/console
+   echo "Start device: $DEVICE" >/dev/console
 
    # free up memory mounts, backwards
-   cat /proc/mounts | grep memory | cut -d " " -f 2 | while read LINE; do
-      umount $LINE >/dev/console 2>&1
+   MMOUNT="$(findsubmnt /memory)"
+   for m in ${MMOUNT}
+   do
+       if [ $m != "/memory" ]; then
+           echo "Unmounting $m" >/dev/console
+           umount $m >/dev/console 2>&1
+       fi
    done
+   echo "Unmounting /memory"
+   umount /memory >/dev/console 2>&1
 
    # eject cdrom device if we were running from it
    for i in $(cat /proc/sys/dev/cdrom/info | grep name); do
