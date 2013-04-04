@@ -1,0 +1,37 @@
+#!/bin/sh
+DEVICE=$1
+MNT=/tmp/livecfg
+
+if [ $# -eq 0 ]; then
+    echo "mklivecfg: configures a device to host config modules"
+    echo "    usage: mklivecfg device"
+    exit 1
+fi
+
+source /usr/lib/liblinuxlive
+SGNFILE=$MNT/$LIVECDNAME/$DEFCONFIGSGN
+
+if ismountpoint $MNT ; then
+    echo "mklivecfg: error: found mounted fs on $MNT"
+    exit 1
+fi
+
+[ -d "$MNT" ]&&rm -rf /tmp/livecfg
+mkdosfs -v -n livecfg $DEVICE
+
+if [ ! -d $MNT ]; then
+    echo "mklivecfg: creating $SGNFILE"
+
+    mkdir $MNT
+    mount $DEVICE $MNT
+
+    mkdir $MNT/$LIVECDNAME
+    echo "Don't delete this file, else your Live Linux won't work" >>$SGNFILE
+    echo "" >>$SGNFILE
+    echo "All available Disks and CDs are mounted sequentially during the boot process" >>$SGNFILE
+    echo "and linuxrc script is looking for livecfg.sgn file. It tells linuxrc where is the live config." >>$SGNFILE
+    mkdir $MNT/$LIVECDNAME/modules
+
+    umount $MNT
+    rmdir $MNT
+fi

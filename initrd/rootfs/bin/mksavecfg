@@ -1,0 +1,63 @@
+#!/bin/sh
+export SQUASHOPTS="-comp gzip -noI -noD -noF -noX -no-fragments"
+
+if [ -f /etc/livecfg ]; then
+    FILES="/etc/livecfg"
+    FILES="$FILES $(xargs -a /etc/livecfg -I % sh -c '{ test -f %&&echo %; }')"
+fi
+if [ -f /etc/zlivecfg ]; then
+    FILES="$FILES $(xargs -a /etc/zlivecfg -I % sh -c '{ test -f %&&echo %; }')"
+fi
+
+if [ -n "${FILES}" ]; then
+    cd /
+    WORK=/tmp/mkconfig
+    TARFILE=/tmp/mkconfig.tar
+    LZMFILE=/tmp/mkconfig.lzm
+
+    source /usr/lib/liblinuxlive
+    CONFIGNAME="livecfg.lzm"
+    if [ $# -eq 1 ]; then
+        CONFIGNAME=$1
+    fi
+
+    LIVECFG="/mnt/live/memory/config/$LIVECDNAME"
+    if [ ! -d "$LIVECFG" ]; then
+	rm -f /tmp/_findfile
+	ln -sf ../sbin/blkid /bin/blkid
+	CONFIGSGN=$DEFCONFIGSGN
+	echo "mksavecfg: looking for '$LIVECDNAME' config directory"
+	echo "           (searching for $CONFIGSGN file)"
+	LIVECFG=$(find_in_computer $LIVECDNAME/$CONFIGSGN)
+	LIVECFG=$(dirname $LIVECFG 2>/dev/null)
+    fi
+    LIVECFGMNT=$(find_mountpoint $LIVECFG)
+
+    CONFIGPATH="${LIVECFG}/modules/${CONFIGNAME}"
+    echo "mksavecfg: saving config to ${CONFIGPATH}"
+
+    if [ -d "${LIVECFG}/modules" ]; then
+
+        tar -cpf "${TARFILE}" ${FILES}
+        mkdir -p "${WORK}"
+        tar -xpf "${TARFILE}" -C "${WORK}" --numeric-owner
+
+        dir2lzm "${WORK}" "${LZMFILE}"
+
+        if [ -f "${CONFIGPATH}" ] ; then
+            mv "${CONFIGPATH}" "${CONFIGPATH}.old"
+        fi
+        cp "${LZMFILE}" "${CONFIGPATH}"
+
+        rm -rf "${WORK}"
+        rm -f "${TARFILE}"
+        rm -f "${LZMFILE}"
+    else
+	echo "mksavecfg: not found: ${LIVECFG}/modules"
+    fi
+
+    if [ "$LIVECFGMNT" != "/mnt/live/memory/config" ]; then
+        umount "$LIVECFGMNT"
+    fi
+    cd -
+fi

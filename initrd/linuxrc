@@ -217,7 +217,7 @@ union_insert_modules $UNION $DATA $IMAGES
 # in the case if changes= boot argument is used. If not, it doesn't hurt
 union_insert_modules $UNION $MEMORY $IMAGES
 
-# LIVECFGG contains to the base directory of config modules which need
+# LIVECFG contains path to the base directory of config modules which need
 # to be mounted and inserted into live filesystem. Do it now.
 union_insert_modules $UNION $LIVECFG $IMAGES
 

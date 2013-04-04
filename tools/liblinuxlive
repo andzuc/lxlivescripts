@@ -1114,6 +1114,8 @@ preserve_initrd()
     cp $FROMDIR/bin/sh $MYDIR/bin
     cp $FROMDIR/bin/cpld $MYDIR/bin
     cp $FROMDIR/bin/findsubmnt $MYDIR/bin
+    cp $FROMDIR/bin/mklivecfg $MYDIR/bin
+    cp $FROMDIR/bin/mksavecfg $MYDIR/bin
     cp $FROMDIR/cleandie $MYDIR/bin
     cp $FROMDIR/*.config $MYDIR
 }
