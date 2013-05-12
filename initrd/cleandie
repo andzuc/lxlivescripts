@@ -83,12 +83,6 @@ if [ "$1" = "--init" ]; then
    mount -n -t proc proc /proc >/dev/console 2>&1
    mount -n -t sysfs sysfs /sys >/dev/console 2>&1
 
-   # if debug is requested, start commandline prompt here
-   if grep -q debug /proc/cmdline; then
-      echo "Starting shell for debug" >/dev/console
-      setsid sh -c 'exec sh < /dev/tty1 >/dev/tty1 2>&1'
-   fi
-
    # Detach loop devices which are no longer used
    losetup | cut -d : -f 1 | xargs -n 1 losetup -d
 
@@ -108,38 +102,44 @@ if [ "$1" = "--init" ]; then
    # remember from which device we are started, do it now before we lose it
    DEVICE="$(cat /proc/mounts | grep /memory/data | grep /dev/ | cut -d " " -f 1)"
 
-   echo "Start device: $DEVICE" >/dev/console
+   echo "Cleandie: start device: $DEVICE" >/dev/console
 
    # free up memory mounts, backwards
    MMOUNT="$(findsubmnt /memory)"
    for m in ${MMOUNT}
    do
        if [ $m != "/memory" ]; then
-           echo "Unmounting $m" >/dev/console
+           echo "Cleandie: unmounting $m" >/dev/console
            umount $m >/dev/console 2>&1
        fi
    done
-   echo "Unmounting /memory"
+   echo "Cleandie: unmounting /memory" >/dev/console
    umount /memory >/dev/console 2>&1
+
+   echo "Cleandie: checking unmount" >/dev/console
+   for m in ${MMOUNT}
+   do
+       if (cat /proc/mounts|grep $m) ; then
+	   echo "Cleandie failed: stopping" >/dev/console
+	   while true; do sleep 20; done
+       fi
+   done
 
    # eject cdrom device if we were running from it
    for i in $(cat /proc/sys/dev/cdrom/info | grep name); do
       if [ "$DEVICE" = "/dev/$i" ]; then
-         echo "Attemptiong to eject /dev/$i..." >/dev/console
+         echo "Cleandie: attemptiong to eject /dev/$i..." >/dev/console
          eject /dev/$i
-         echo "CD/DVD tray will close in 6 seconds..." >/dev/console
+         echo "Cleandie: CD/DVD tray will close in 6 seconds..." >/dev/console
          sleep 6
          eject -t /dev/$i
       fi
    done
 
-   # and finally, last chance to run some commands by hand
-   if grep -q debug /proc/cmdline; then
-      echo "Starting shell for debug" >/dev/console
-      setsid sh -c 'exec sh < /dev/tty1 >/dev/tty1 2>&1'
-   fi
-
    cat /lib/command >/dev/console
+   sleep 3
    $(cat /lib/command 2>/dev/null)
+   echo "Cleandie failed: cannot be here" >/dev/console
+   while true; do sleep 20; done
    reboot -f
 fi

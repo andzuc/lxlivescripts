@@ -844,7 +844,7 @@ mdev_start_hotplug()
    debug_log "mdev_start_hotplug" "$*"
    echolog "creating /dev entries for block devices"
    mdev -s
-   rm /dev/pty??* /dev/tty??* # remove unneeded pty and tty devices
+   rm -f /dev/pty??* /dev/tty??* # remove unneeded pty and tty devices
    echo /bin/mdev > /proc/sys/kernel/hotplug # use mdev as a hotplug handler
 }
 
