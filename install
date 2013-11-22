@@ -29,6 +29,12 @@ else
    ls -1 ./tools | egrep "^lib" | while read FILE; do rm -v $ROOT/usr/lib/$FILE; done
 fi
 
+# If zlivesetup file is found will be executed
+if [ -x /zlivesetup ]; then
+    /zlivesetup
+    rm /zlivesetup
+fi
+
 # If livesetup file is found will be executed
 if [ -x /livesetup ]; then
     /livesetup

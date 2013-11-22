@@ -167,6 +167,8 @@ rcopy_ex $ROOT/$LMK/kernel/fs/nls $INITRD_TREE 2>>$DEBUG
 
 # usb modules
 rcopy_ex $ROOT/$LMK/kernel/drivers/usb/storage $INITRD_TREE 2>>$DEBUG
+rcopy_ex $ROOT/$LMK/kernel/drivers/usb/host/ehci-platform.* $INITRD_TREE 2>>$DEBUG
+rcopy_ex $ROOT/$LMK/kernel/drivers/usb/host/ehci-pci.* $INITRD_TREE 2>>$DEBUG
 rcopy_ex $ROOT/$LMK/kernel/drivers/usb/host/ehci-hcd.* $INITRD_TREE 2>>$DEBUG
 rcopy_ex $ROOT/$LMK/kernel/drivers/usb/host/ohci-hcd.* $INITRD_TREE 2>>$DEBUG
 rcopy_ex $ROOT/$LMK/kernel/drivers/usb/host/uhci-hcd.* $INITRD_TREE 2>>$DEBUG

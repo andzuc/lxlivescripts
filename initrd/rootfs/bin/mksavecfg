@@ -3,10 +3,10 @@ export SQUASHOPTS="-comp gzip -noI -noD -noF -noX -no-fragments"
 
 if [ -f /etc/livecfg ]; then
     FILES="/etc/livecfg"
-    FILES="$FILES $(xargs -a /etc/livecfg -I % sh -c '{ test -f %&&echo %; }')"
+    FILES="$FILES $(xargs -a /etc/livecfg -I % sh -c '{ [ -f % -o -d % ]&&echo %; }')"
 fi
 if [ -f /etc/zlivecfg ]; then
-    FILES="$FILES $(xargs -a /etc/zlivecfg -I % sh -c '{ test -f %&&echo %; }')"
+    FILES="$FILES $(xargs -a /etc/zlivecfg -I % sh -c '{ [ -f % -o -d % ]&&echo %; }')"
 fi
 
 if [ -n "${FILES}" ]; then
@@ -30,6 +30,7 @@ if [ -n "${FILES}" ]; then
 	echo "           (searching for $CONFIGSGN file)"
 	LIVECFG=$(find_in_computer $LIVECDNAME/$CONFIGSGN)
 	LIVECFG=$(dirname $LIVECFG 2>/dev/null)
+	rm -f /tmp/_findfile
     fi
     LIVECFGMNT=$(find_mountpoint $LIVECFG)
 

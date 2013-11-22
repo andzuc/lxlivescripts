@@ -884,13 +884,15 @@ modprobe_usb_modules()
    # skip module loading if nohotplug bootparam is present
    if [ "$(cmdline_parameter nohotplug)" ]; then return 0; fi
 
-   LSPCI=$(lspci -v | grep -i prog-if)
+   LSPCI=$(/sbin/lspci -v | grep -i prog-if)
    if [ "$(echo $LSPCI | egrep -i [eou]hci)" = "" ]; then
       return 0
    fi
 
    echolog "starting USB support"
    if [ "$(echo $LSPCI | grep -i ehci)" != "" ]; then
+      modprobe_module ehci-platform
+      modprobe_module ehci-pci
       modprobe_module ehci-hcd
    fi
    if [ "$(echo $LSPCI | grep -i ohci)" != "" ]; then

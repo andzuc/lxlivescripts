@@ -25,6 +25,10 @@ modprobe_essential_modules
 # so it must be mounted from .lzm files
 mount_initrd_loops
 
+# Update module dependencies.
+# creates an updated modules.dep.bb
+depmod
+
 # start hotplugging before hw drivers load
 mdev_start_hotplug
 
