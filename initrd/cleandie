@@ -84,7 +84,7 @@ if [ "$1" = "--init" ]; then
    mount -n -t sysfs sysfs /sys >/dev/console 2>&1
 
    # Detach loop devices which are no longer used
-   losetup | cut -d : -f 1 | xargs -n 1 losetup -d
+   losetup -a | cut -d : -f 1 | xargs -n 1 losetup -d
 
    # next, unmount everything from union, backwards
    tac /proc/mounts | grep union | cut -d " " -f 2 | while read LINE; do
@@ -97,7 +97,7 @@ if [ "$1" = "--init" ]; then
    done
 
    # Detach loop devices which are no longer used
-   losetup | cut -d : -f 1 | xargs -n 1 losetup -d
+   losetup -a | cut -d : -f 1 | xargs -n 1 losetup -d
 
    # remember from which device we are started, do it now before we lose it
    DEVICE="$(cat /proc/mounts | grep /memory/data | grep /dev/ | cut -d " " -f 1)"

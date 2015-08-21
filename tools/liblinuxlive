@@ -845,7 +845,7 @@ mdev_start_hotplug()
    echolog "creating /dev entries for block devices"
    mdev -s
    rm -f /dev/pty??* /dev/tty??* # remove unneeded pty and tty devices
-   echo /bin/mdev > /proc/sys/kernel/hotplug # use mdev as a hotplug handler
+   echo /sbin/mdev > /proc/sys/kernel/hotplug # use mdev as a hotplug handler
 }
 
 # Modprobe kernel modules needed for the LiveCD
@@ -1091,15 +1091,28 @@ fstab_update()
    mv -f $FSTABTMP $FSTAB
 }
 
+relpath()
+{
+    local TO=$1
+    local FROM=$2
+    python -c "import os.path; print(os.path.relpath('$TO', '$FROM'));"
+}
+
 # build links to busybox's functions from busybox's own help text
 busybox_links()
 {
     debug_log "Creating links to busybox's functions"
-    local BINDIR=$1
+    local ROOTDIR=$1
+    local BBOX=$(find "$ROOTDIR" -name 'busybox')
 
-    for i in $($BINDIR/busybox --help | grep -v Copyright | grep , | tr , " "); do
-	if ! [ -a $BINDIR/$i ]; then
-	    ln -s busybox $BINDIR/$i
+    for i in $("$BBOX" --list-full); do
+	if ! [ -a "$ROOTDIR/$i" ]; then
+	    local DIRNAME=$(dirname "$ROOTDIR/$i")
+	    local RELPATH=$(relpath "$BBOX" "$DIRNAME")
+	    if ! [ -d "$DIRNAME" ]; then
+		mkdir -p "$DIRNAME"
+	    fi
+	    ln -s "$RELPATH" "$ROOTDIR/$i"
 	fi
     done
 }

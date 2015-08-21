@@ -91,7 +91,7 @@ rm -Rf $INITRD_TREE
 mkdir $INITRD_TREE
 
 debug "creating directories"
-mkdir -p $INITRD_TREE/{etc,dev,bin,mnt,proc,lib,sys,tmp,var/log}
+mkdir -p $INITRD_TREE/{etc,dev,bin,sbin,mnt,proc,lib,sys,tmp,var/log}
 
 debug "creating some essential devices in rootdisk"
 mknod $INITRD_TREE/dev/console c 5 1
@@ -134,14 +134,7 @@ if [ "$USEINITRAMFS" = "yes" ]; then
 fi
 
 # build links to busybox's functions from busybox's own help text
-for i in $(rootfs/bin/busybox --help | grep -v Copyright | grep , | tr , " "); do
-    if ! [ -a $INITRD_TREE/bin/$i ]; then
-	ln -s busybox $INITRD_TREE/bin/$i
-    fi
-done
-#busybox_links $INITRD_TREE/bin
-
-ln -sf bin $INITRD_TREE/sbin
+busybox_links "$INITRD_TREE"
 
 # necessary modules and dependency files
 mkdir -p $INITRD_TREE/$LMK/kernel/fs
