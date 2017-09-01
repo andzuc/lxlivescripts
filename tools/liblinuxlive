@@ -884,7 +884,7 @@ modprobe_usb_modules()
    # skip module loading if nohotplug bootparam is present
    if [ "$(cmdline_parameter nohotplug)" ]; then return 0; fi
 
-   LSPCI=$(/sbin/lspci -v | grep -i prog-if)
+   LSPCI=$(lspci -v | grep -i prog-if)
    if [ "$(echo $LSPCI | egrep -i [eou]hci)" = "" ]; then
       return 0
    fi
