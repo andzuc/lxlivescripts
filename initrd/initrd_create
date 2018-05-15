@@ -27,7 +27,11 @@ rcopy()
    debug "rcopy $1 $2"
    CWD=$(pwd)
    if [ "$ROOT" = "" ]; then cd /; else cd $ROOT; fi
-   SOURCE="./${1:${#ROOT}}"
+   if [ -z "$1" ]; then
+       echo "rcopy: missing source argument"
+       return 1
+   fi
+   SOURCE="./${1:${#ROOT}}" # strips ROOT from SOURCE argument
    echo $SOURCE
    DEST="$2"
    if [ -L "$SOURCE" ]; then
@@ -108,7 +112,7 @@ done
 
 debug "copying files to the rootdisk"
 touch $INITRD_TREE/etc/{m,fs}tab
-cat liblinuxlive | sed -r 's/^LIVECDNAME=.*/LIVECDNAME="'$LIVECDNAME'"/' > $INITRD_TREE/liblinuxlive
+cat liblinuxlive >$INITRD_TREE/liblinuxlive
 cp {linuxrc,cleanup,cleandie} $INITRD_TREE
 chmod ago+x $INITRD_TREE/{linuxrc,cleanup,cleandie}
 
@@ -139,7 +143,24 @@ busybox_links "$INITRD_TREE"
 # necessary modules and dependency files
 mkdir -p $INITRD_TREE/$LMK/kernel/fs
 rcopy $ROOT/$LMK/kernel/fs/squashfs $INITRD_TREE
-rcopy $(find $ROOT/$LMK -name 'aufs.*') $INITRD_TREE
+if use_aufs; then
+    rcopy "$(aufs_modpath)" $INITRD_TREE
+    if [ "$?" -eq 0 ]; then
+	echo "found AUFS kernel module"
+    else
+	echo "missing AUFS kernel module"
+	exit 1
+    fi
+fi
+if use_overlay; then
+    rcopy "$(overlay_modpath)" $INITRD_TREE
+    if [ "$?" -eq 0 ]; then
+	echo "found OVERLAYFS kernel module"
+    else
+	echo "missing OVERLAYFS kernel module"
+	exit 1
+    fi
+fi
 
 # copy filesystem modules, if not directly copied into kernel
 rcopy_ex $ROOT/$LMK/kernel/lib/zlib_inflate $INITRD_TREE 2>>$DEBUG

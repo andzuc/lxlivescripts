@@ -25,8 +25,22 @@ LOOPMOUNT=$MOUNTDIR/tmp
 
 DEFCONFIGSGN=livecfg.sgn
 
-# this will be replaced by build script, so never change the following line!
+# this will be replaced by build script, so never change the following lines!
 LIVECDNAME="mylinux"
+KERNEL="mykernel"
+# OVERLAYDRI: aufs | overlay
+# default is aufs
+OVERLAYDRI="aufs"
+use_aufs()
+{
+    [ "$OVERLAYDRI" == "aufs" ]
+}
+use_overlay()
+{
+    [ "$OVERLAYDRI" == "overlay" ]
+}
+
+MODROOT="/lib/modules/$KERNEL"
 
 # =================================================================
 # debug and output functions
@@ -119,6 +133,52 @@ allow_only_root()
 }
 
 # ===========================================================
+# associative arrays
+# ===========================================================
+HASHFILE=/tmp/keyvaluestore
+rm -f "$HASHFILE"
+hashinit()
+{
+    if ! [ -f "$HASHFILE" ]; then
+	>"$HASHFILE"
+    fi
+}
+
+hashload()
+{
+    hashinit
+    source "$HASHFILE"
+}
+
+hashput()
+{
+    local HASHNAME="$1"
+    local HASHKEY="$2"
+    local HASHVALUE="$3"
+    debug_log "hashput" "$1" "$2" "$3"
+    hashinit
+    echo $(hashkey $HASHNAME $HASHKEY)=$HASHVALUE >>"$HASHFILE"
+    hashload
+}
+
+hashget()
+{
+    local HASHNAME="$1"
+    local HASHKEY="$2"
+    hashload
+    local HASHVALUE=$(eval "echo \$$(hashkey $HASHNAME $HASHKEY)")
+    debug_log "hashget" "$1" "$2" "$HASHVALUE"
+    echo $HASHVALUE
+}
+
+hashkey()
+{
+    local HASHNAME=`echo $1|sed 's/[^a-zA-Z0-9]*//g'`
+    local HASHKEY="$2"
+    echo $HASHNAME$HASHKEY
+}
+
+# ===========================================================
 # text processing functions
 # ===========================================================
 
@@ -179,7 +239,7 @@ mount_initrd_loops()
       mount_device /usr.lzm /usr loop,ro squashfs
    fi
    if [ -e /drivers.lzm ]; then
-      mount_device /drivers.lzm /lib/modules/*/kernel/drivers loop,ro squashfs
+      mount_device /drivers.lzm "$MODROOT/kernel/drivers" loop,ro squashfs
    fi
 }
 
@@ -280,7 +340,7 @@ iocharset()
    IOCHARSET=$(locale_id | cut -d . -f 2- | tr "[[:upper:]]" "[[:lower:]]" | tr -d -)
    if [ "$IOCHARSET" = "" ]; then return 0; fi
 
-   find /lib/modules -name "nls_*" | sed -r 's:^.*/|[.]ko$::g' | cut -b 5- | while read CHARSET; do
+   find "$MODROOT" -name "nls_*" | sed -r 's:^.*/|[.]ko$::g' | cut -b 5- | while read CHARSET; do
       if [ "$(echo $CHARSET | tr "[[:upper:]]" "[[:lower:]]" | tr -d -)" = "$IOCHARSET" ]; then
          echo "$CHARSET"
          return 0
@@ -503,7 +563,29 @@ mount_module()
 union_insert_dir()
 {
    debug_log "union_insert_dir" "$*"
-   mount -n -o remount,add:1:$2=rr aufs $1
+   if use_aufs; then
+       mount -n -o remount,add:1:$2=rr aufs $1
+   fi
+   lowdirs_push "$1" "$2"
+}
+
+lowdirs_push()
+{
+    local HASHNAME="$1"
+    local LOWDIRS=`hashget "$HASHNAME" OVERLAYLOW`
+    if [ -z "$LOWDIRS" ]; then
+	hashput "$HASHNAME" OVERLAYLOW "$2"
+    else
+	hashput "$HASHNAME" OVERLAYLOW "$LOWDIRS:$2"
+    fi
+    debug_log "lowdirs_push: $(hashkey $HASHNAME OVERLAYLOW)=$LOWDIRS"
+}
+
+lowdirs_echo()
+{
+    local HASHNAME="$1"
+    local LOWDIRS=`hashget "$HASHNAME" OVERLAYLOW`
+    echo $LOWDIRS
 }
 
 # Find LZM modules in given dir
@@ -568,12 +650,15 @@ union_insert_module()
 union_insert_modules()
 {
    debug_log "union_insert_modules" "$*"
+   if [ $# -ne 3 ]; then return 1; fi
    local INSERTED
 
    list_modules $2 | while read MODULE; do
       INSERTED=$(union_insert_module $1 $MODULE $3 ${#2})
       if [ "$INSERTED" != "" ]; then echolog " -> $(echo $INSERTED | sed -r s:^/::)"; fi
    done
+   
+   debug_log "union_insert_modules: $(hashkey $1 OVERLAYLOW)=$(lowdirs_echo $1)"
 }
 
 # Copy LiveCD modules to RAM directory
@@ -837,6 +922,18 @@ find_n_run_scripts()
 # hardware preparation functions
 # ===========================================================
 
+# find aufs module path
+aufs_modpath()
+{
+    find "$MODROOT" -name 'aufs.*'
+}
+
+# find overlay module path
+overlay_modpath()
+{
+    find "$MODROOT" -name 'overlay.*'
+}
+
 # Create block devices to /dev described by /sys entries
 #
 mdev_start_hotplug()
@@ -860,8 +957,14 @@ modprobe_essential_modules()
    modprobe_module isofs
    echolog "starting squashfs support"
    modprobe_module squashfs
-   echolog "starting aufs support with brs=1"
-   modprobe_module aufs brs=1
+   if use_aufs; then
+       echolog "starting aufs support with brs=1"
+       modprobe_module aufs brs=1
+   fi
+   if use_overlay; then
+       echolog "starting overlayfs support"
+       modprobe_module overlay
+   fi
    echolog "starting linux filesystem support"
    modprobe_module ext2
    modprobe_module ext3
@@ -1059,7 +1162,12 @@ fstab_update()
    mkdir -p $1/etc $1/mnt
    cat $FSTAB 2>/dev/null | grep -v "$FSTABLLFLAG" >$FSTABTMP
 
-   fstab_add_line $FSTABTMP aufs / aufs defaults
+   if use_aufs; then
+       fstab_add_line $FSTABTMP aufs / aufs defaults
+   fi
+   if use_overlay; then
+       fstab_add_line $FSTABTMP overlay / overlay defaults
+   fi
    fstab_add_line $FSTABTMP proc /proc proc defaults
    fstab_add_line $FSTABTMP sysfs /sys sysfs defaults
    fstab_add_line $FSTABTMP devpts /dev/pts devpts gid=5,mode=620

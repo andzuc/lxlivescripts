@@ -17,7 +17,7 @@ header "starting Linux Live scripts <http://www.linux-live.org/>"
 # Syslog will reset printk settings, no need to remember it here anymore.
 echo "0" >/proc/sys/kernel/printk
 
-# Load essential drivers, like CDROM drivers, aufs/squashfs etc,
+# Load essential drivers, like CDROM drivers, aufs/overlay drivers, squashfs etc,
 # use mdev to create /dev/ devices and setup it as a hotplug-handler
 modprobe_essential_modules
 
@@ -131,7 +131,7 @@ if [ $? -ne 0 ]; then
    RAMSIZE=$(cmdline_value ramsize)
    if [ "$RAMSIZE" = "" ]; then RAMSIZE="60%"; fi
    mount -t tmpfs -o "size=$RAMSIZE" tmpfs $MEMORY
-   XINO=$MEMORY
+   XINO=$MEMORY # XINO = /memory
 else
    # So it is writable, we will keep the filesystem mounted.
    # Check if it supports links and chmod.
@@ -186,10 +186,14 @@ if [ "$XINO" != "$MEMORY" ]; then
 fi
 
 # mount aufs using the writable branch as the first one (leftmost/topmost)
-mount -t aufs -o nowarn_perm,xino=$XINO/.aufs.xino,br:$CHANGES=rw aufs $UNION
-if [ $? -ne 0 ]; then dmesg | tail -n 1; fatal "can't setup union (aufs)"; fi
-
-debug_shell
+# XINO = /memory
+# CHANGES = /memory/changes
+# UNION = /union
+if use_aufs; then
+    mount -t aufs -o nowarn_perm,xino=$XINO/.aufs.xino,br:$CHANGES=rw aufs $UNION
+    if [ $? -ne 0 ]; then dmesg | tail -n 1; fatal "can't setup union (aufs)"; fi
+    debug_shell
+fi
 
 # If toram or copy2ram boot parameter is present, copy all fs modules to RAM.
 # (skip modules from /optional/ which are not listed in load= boot option)
@@ -212,6 +216,10 @@ fi
 
 debug_shell
 
+# If not "use_aufs" is true, union will not contain mounted branches.
+# UNION = /union
+# IMAGES = /memory/images
+
 # DATA contains path to the base directory of all fs modules which need
 # to be mounted and inserted into live filesystem. Do it now.
 echolog "inserting all modules and creating live filesystem"
@@ -224,6 +232,15 @@ union_insert_modules $UNION $MEMORY $IMAGES
 # LIVECFG contains path to the base directory of config modules which need
 # to be mounted and inserted into live filesystem. Do it now.
 union_insert_modules $UNION $LIVECFG $IMAGES
+
+if use_overlay; then
+    LOWERDIRS="$(lowdirs_echo $UNION)"
+    echolog "Overlay branches: $LOWERDIRS"
+    mkdir "$XINO/work"
+    mount -t overlay overlay -olowerdir="$LOWERDIRS",upperdir="$CHANGES",workdir="$XINO/work" "$UNION"
+    if [ $? -ne 0 ]; then dmesg | tail -n 1; fatal "can't setup union (overlayfs)"; fi
+    debug_shell
+fi
 
 debug_shell
 

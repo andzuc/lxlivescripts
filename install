@@ -23,7 +23,13 @@ if [ "$N" != "uninstall" ]; then
    mkdir -p $ROOT/usr/bin
    mkdir -p $ROOT/usr/lib
    ls -1 ./tools | egrep -v "^lib" | while read FILE; do cp ./tools/$FILE $ROOT/usr/bin; done
-   cat ./tools/liblinuxlive | sed -r 's/^LIVECDNAME=.*/LIVECDNAME="'$LIVECDNAME'"/' > $ROOT/usr/lib/liblinuxlive
+   echo "install: OVERLAYDRI=$OVERLAYDRI"
+   cat ./tools/liblinuxlive \
+       |sed -r 's/^LIVECDNAME=.*/LIVECDNAME="'$LIVECDNAME'"/' \
+       |sed -r 's/^KERNEL=.*/KERNEL="'$KERNEL'"/' \
+       |sed -r 's/^OVERLAYDRI=.*/OVERLAYDRI="'$OVERLAYDRI'"/' \
+       > "$ROOT/usr/lib/liblinuxlive"
+   cp -f "$ROOT/usr/lib/liblinuxlive" ./tools/liblinuxlive
 else
    ls -1 ./tools | egrep -v "^lib" | while read FILE; do rm -v $ROOT/usr/bin/$FILE; done
    ls -1 ./tools | egrep "^lib" | while read FILE; do rm -v $ROOT/usr/lib/$FILE; done

@@ -21,6 +21,7 @@ echo -ne "Name of your live distro [hit enter for $LIVECDNAME]: "
 read NEWLIVECDNAME
 if [ "$NEWLIVECDNAME" != "" ]; then LIVECDNAME=$NEWLIVECDNAME; fi
 LIVECDNAME=$(echo $LIVECDNAME | tr -d ' ')
+echo
 
 # copy updated binaries and libraries from host system to live initrd
 . ./tools/prep_initrd
@@ -29,6 +30,9 @@ LIVECDNAME=$(echo $LIVECDNAME | tr -d ' ')
 if [ "$ROOT" -a "$ROOT" != "/" ]; then 
    . ./install $ROOT
 fi
+
+# resource liblinuxlive
+. liblinuxlive
 
 # search for kernel
 VMLINUZ=$ROOT/boot/vmlinuz
