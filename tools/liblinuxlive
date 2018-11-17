@@ -576,7 +576,7 @@ lowdirs_push()
     if [ -z "$LOWDIRS" ]; then
 	hashput "$HASHNAME" OVERLAYLOW "$2"
     else
-	hashput "$HASHNAME" OVERLAYLOW "$LOWDIRS:$2"
+	hashput "$HASHNAME" OVERLAYLOW "$2:$LOWDIRS"
     fi
     debug_log "lowdirs_push: $(hashkey $HASHNAME OVERLAYLOW)=$LOWDIRS"
 }
